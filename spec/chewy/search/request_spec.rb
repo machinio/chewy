@@ -509,6 +509,24 @@ describe Chewy::Search::Request do
     specify { expect { subject.except(:limit) }.not_to change { subject.render } }
   end
 
+  describe '#function_score' do
+    specify { expect(subject.function_score(max_boost: 42).render[:body]).to include(query: {function_score: {max_boost: 42}}) }
+    specify { expect(subject.function_score(max_boost: 42).function_score(nil).render[:body]).to include(query: {function_score: {max_boost: 42}}) }
+    specify { expect { subject.function_score(max_boost: 42) }.not_to change { subject.render } }
+
+    describe 'updates query render' do
+      subject { described_class.new(ProductsIndex).query(match: {name: 'name3'}) }
+
+      specify { expect(subject.function_score(max_boost: 42).render[:body]).to include(query: {function_score: {max_boost: 42, query: {match: {name: 'name3'}}}}) }
+    end
+
+    describe 'does not affect aggs render' do
+      subject { described_class.new(ProductsIndex).aggs(avg_age: {avg: {field: :age}}) }
+
+      specify { expect(subject.function_score(max_boost: 42).render[:body]).to include(aggs: {'avg_age' => {avg: {field: :age}}}, query: {function_score: {max_boost: 42}}) }
+    end
+  end
+
   context 'index does not exist' do
     specify { expect(subject).to eq([]) }
     specify { expect(subject.count).to eq(0) }
