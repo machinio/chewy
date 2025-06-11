@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Chewy::Index::Witchcraft do
+describe Chewy::Index::Witchcraft, skip: 'Witchcraft is not supported on Ruby 3.4 without parser gem' do
   def self.mapping(&block)
     before do
       stub_index(:products) do

@@ -806,11 +806,11 @@ Chewy.settings[:sidekiq] = {queue: :low}
 
 #### `:delayed_sidekiq`
 
-It accumulates IDs of records to be reindexed during the latency window in Redis and then performs the reindexing of all accumulated records at once. 
-This strategy is very useful in the case of frequently mutated records. 
+It accumulates IDs of records to be reindexed during the latency window in Redis and then performs the reindexing of all accumulated records at once.
+This strategy is very useful in the case of frequently mutated records.
 It supports the `update_fields` option, so it will attempt to select just enough data from the database.
 
-Keep in mind, this strategy does not guarantee reindexing in the event of Sidekiq worker termination or an error during the reindexing phase. 
+Keep in mind, this strategy does not guarantee reindexing in the event of Sidekiq worker termination or an error during the reindexing phase.
 This behavior is intentional to prevent continuous growth of Redis db.
 
 There are three options that can be defined in the index:
@@ -1360,11 +1360,30 @@ Chewy.import_scope_cleanup_behavior = :ignore
 5. Push to the branch (`git push origin my-new-feature`)
 6. Create new Pull Request
 
+### Running tests
+
+Install elasticsearch using docker compose:
+```bash
+docker compose up -d
+```
+
 Use the following Rake tasks to control the Elasticsearch cluster while developing, if you prefer native Elasticsearch installation over the dockerized one:
 
 ```bash
 rake elasticsearch:start # start Elasticsearch cluster on 9250 port for tests
 rake elasticsearch:stop # stop Elasticsearch
+```
+
+Install ruby dependencies:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/rails.7.2.activerecord.gemfile bundle install
+```
+
+Run tests:
+
+```bash
+BUNDLE_GEMFILE=gemfiles/rails.7.2.activerecord.gemfile bundle exec rspec
 ```
 
 ## Copyright
