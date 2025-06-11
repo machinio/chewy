@@ -54,11 +54,11 @@ describe Chewy::Search::Request do
   describe '#inspect' do
     specify do
       expect(described_class.new(ProductsIndex).inspect)
-        .to eq('<Chewy::Search::Request {:index=>["products"], :body=>{}}>')
+        .to eq('<Chewy::Search::Request {index: ["products"], body: {}}>')
     end
     specify do
       expect(ProductsIndex.limit(10).inspect)
-        .to eq('<ProductsIndex::Query {:index=>["products"], :body=>{:size=>10}}>')
+        .to eq('<ProductsIndex::Query {index: ["products"], body: {size: 10}}>')
     end
   end
 
