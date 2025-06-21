@@ -98,7 +98,7 @@ module Chewy
         def postpone
           ::Sidekiq.redis do |redis|
             # do the redis stuff in a single command to avoid concurrency issues
-            if redis.eval(LUA_SCRIPT, keys: [timechunk_key, timechunks_key], argv: [serialize_data, at, ttl])
+            if schedule_job?(redis, keys: [timechunk_key, timechunks_key], argv: [serialize_data, at, ttl])
               ::Sidekiq::Client.push(
                 'queue' => sidekiq_queue,
                 'at' => at + margin,
@@ -121,6 +121,17 @@ module Chewy
 
             (schedule_at - (schedule_at % latency)).to_i
           end
+        end
+
+        def schedule_job?(conn, keys: [], argv: [])
+          @lua_schedule_job_sha = conn.script(:load, LUA_SCRIPT) if @lua_schedule_job_sha.nil?
+
+          conn.call('EVALSHA', @lua_schedule_job_sha, keys.size, *keys, *argv)
+        rescue RedisClient::CommandError => e
+          raise unless e.message.start_with?('NOSCRIPT')
+
+          @lua_schedule_job_sha = nil
+          retry
         end
 
         def fields

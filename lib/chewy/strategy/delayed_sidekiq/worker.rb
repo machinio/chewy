@@ -39,7 +39,7 @@ module Chewy
           options[:refresh] = !Chewy.disable_refresh_async if Chewy.disable_refresh_async
 
           ::Sidekiq.redis do |redis|
-            members = redis.eval(LUA_SCRIPT, keys: [], argv: [type, score, Scheduler::KEY_PREFIX])
+            members = extract_members(redis, keys: [], argv: [type, score, Scheduler::KEY_PREFIX])
 
             # extract ids and fields & do the reset of records
             ids, fields = extract_ids_and_fields(members)
@@ -53,6 +53,17 @@ module Chewy
         end
 
       private
+
+        def extract_members(conn, keys: [], argv: [])
+          @lua_extract_members_sha = conn.script(:load, LUA_SCRIPT) if @lua_extract_members_sha.nil?
+
+          conn.call('EVALSHA', @lua_extract_members_sha, keys.size, *keys, *argv)
+        rescue RedisClient::CommandError => e
+          raise unless e.message.start_with?('NOSCRIPT')
+
+          @lua_extract_members_sha = nil
+          retry
+        end
 
         def extract_ids_and_fields(members)
           ids = []
