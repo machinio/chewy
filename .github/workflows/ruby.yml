@@ -17,7 +17,7 @@ concurrency:
 jobs:
   ruby-3:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -49,8 +49,7 @@ jobs:
           bundler-cache: true
       - name: Start containers
         run: |
-          docker compose up elasticsearch_${{ matrix.elasticsearch }} -d
-          docker compose wait elasticsearch_${{ matrix.elasticsearch }}
+          docker compose up elasticsearch_${{ matrix.elasticsearch }} -d --wait
 
       - name: Tests
         run: bundle exec rspec
