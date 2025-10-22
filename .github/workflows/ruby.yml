@@ -5,10 +5,10 @@ on:
     branches: [master]
   pull_request:
     types: [
-      synchronize, # PR was updated
-      opened, # PR was open
-      reopened # PR was reopened
-    ]
+        synchronize, # PR was updated
+        opened, # PR was open
+        reopened, # PR was reopened
+      ]
 
 jobs:
   ruby-3:
@@ -16,9 +16,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [ '3.4' ]
+        ruby: ["3.4"]
         gemfile: [rails.7.1.activerecord, rails.7.2.activerecord]
-    name: ${{ matrix.ruby }}-${{ matrix.gemfile }}
+        elasticsearch: [8, 9]
+    name: ${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ matrix.elasticsearch }}
 
     env:
       BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
@@ -28,7 +29,7 @@ jobs:
         # Docker Hub image
         image: redis
         ports:
-          - '6379:6379'
+          - "6379:6379"
         # Set health checks to wait until redis has started
         options: >-
           --health-cmd "redis-cli ping"
@@ -43,8 +44,8 @@ jobs:
           bundler-cache: true
       - name: Start containers
         run: |
-          docker compose up elasticsearch_test -d
-          sleep 15
+          docker compose up elasticsearch_${{ matrix.elasticsearch }} -d
+          docker compose wait elasticsearch_${{ matrix.elasticsearch }}
 
       - name: Tests
         run: bundle exec rspec
