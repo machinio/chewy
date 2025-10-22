@@ -50,6 +50,7 @@ jobs:
       - name: Start containers
         run: |
           docker compose up elasticsearch_${{ matrix.elasticsearch }} -d --wait
+          sleep 10
 
       - name: Tests
         run: bundle exec rspec
