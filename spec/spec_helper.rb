@@ -46,8 +46,8 @@ Chewy.settings = {
 
 # Low-level substitute for now-obsolete drop_indices
 def drop_indices
-  response = Chewy.client.cat.indices
-  indices = response.body.lines.map { |line| line.split[2] }
+  response = Chewy.client.cat.indices(format: :json)
+  indices = response.body.map { |index| index['index'] }
   return if indices.blank?
 
   Chewy.client.indices.delete(index: indices)
