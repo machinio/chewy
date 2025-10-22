@@ -11,3 +11,11 @@ gem 'rubocop', '1.81.6'
 gem 'sqlite3', '~> 1.4'
 gem 'timecop'
 gem 'unparser'
+
+# Pin elasticsearch gem to the correct major for CI based on ES_MAJOR
+case ENV['ES_MAJOR']
+when '8'
+  gem 'elasticsearch', '>= 8', '< 9'
+when '9'
+  gem 'elasticsearch', '>= 9', '< 10'
+end

@@ -28,6 +28,7 @@ jobs:
 
     env:
       BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
+      ES_MAJOR: ${{ matrix.elasticsearch }}
 
     services:
       redis:
