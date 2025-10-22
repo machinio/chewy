@@ -135,7 +135,7 @@ module Chewy
             sync_result = index.sync(parallel: parallel)
             if !sync_result
               output.puts "  Something went wrong with the #{index} synchronization"
-            elsif (sync_result[:count]).positive?
+            elsif sync_result[:count].positive?
               output.puts "  Missing documents: #{sync_result[:missing]}" if sync_result[:missing].present?
               output.puts "  Outdated documents: #{sync_result[:outdated]}" if sync_result[:outdated].present?
               synced_indexes.push(index)

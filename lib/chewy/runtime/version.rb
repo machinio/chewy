@@ -2,6 +2,7 @@ module Chewy
   module Runtime
     class Version
       include Comparable
+
       attr_reader :major, :minor, :patch
 
       def initialize(version)

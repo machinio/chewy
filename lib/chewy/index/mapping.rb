@@ -33,7 +33,7 @@ module Chewy
         #   end
         #
         def root(**options)
-          self.root_object ||= Chewy::Fields::Root.new(:root, **Chewy.default_root_options.merge(options))
+          self.root_object ||= Chewy::Fields::Root.new(:root, **Chewy.default_root_options, **options)
           root_object.update_options!(**options)
           yield if block_given?
           root_object

@@ -156,11 +156,9 @@ module Chewy
             suffixed_name = index_name(suffix: suffix)
 
             optimize_index_settings suffixed_name
-            result = import(**import_options.merge(
-              suffix: suffix,
-              journal: journal,
-              refresh: !Chewy.reset_disable_refresh_interval
-            ))
+            result = import(**import_options, suffix: suffix,
+                                              journal: journal,
+                                              refresh: !Chewy.reset_disable_refresh_interval)
             original_index_settings suffixed_name
 
             delete if indexes.blank?
@@ -176,7 +174,7 @@ module Chewy
             result
           else
             purge!
-            import(**import_options.merge(journal: journal))
+            import(**import_options, journal: journal)
           end
 
           specification.lock!

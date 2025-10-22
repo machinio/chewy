@@ -134,13 +134,13 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
     end
 
     @reindex.each_value do |document|
-      document[:match_count] = (!document[:expected_count] && (document[:real_count]).positive?) ||
+      document[:match_count] = (!document[:expected_count] && document[:real_count].positive?) ||
         (document[:expected_count] && document[:expected_count] == document[:real_count])
       document[:match_attributes] = document[:expected_attributes].blank? ||
         compare_attributes(document[:expected_attributes], document[:real_attributes])
     end
     @delete.each_value do |document|
-      document[:match_count] = (!document[:expected_count] && (document[:real_count]).positive?) ||
+      document[:match_count] = (!document[:expected_count] && document[:real_count].positive?) ||
         (document[:expected_count] && document[:expected_count] == document[:real_count])
     end
 
@@ -173,7 +173,7 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
     output << @reindex.each.with_object('') do |(id, document), result|
       unless document[:match_count] && document[:match_attributes]
         result << "Expected document with id `#{id}` to be reindexed"
-        if (document[:real_count]).positive?
+        if document[:real_count].positive?
           if document[:expected_count] && !document[:match_count]
             result << "\n   #{document[:expected_count]} times, but was reindexed #{document[:real_count]} times"
           end
@@ -190,7 +190,7 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
     output << @delete.each.with_object('') do |(id, document), result|
       unless document[:match_count]
         result << "Expected document with id `#{id}` to be deleted"
-        result << if (document[:real_count]).positive? && document[:expected_count]
+        result << if document[:real_count].positive? && document[:expected_count]
           "\n   #{document[:expected_count]} times, but was deleted #{document[:real_count]} times"
         else
           ', but it was not'

@@ -3,6 +3,7 @@ inherit_from: .rubocop_todo.yml
 AllCops:
   NewCops: enable
   TargetRubyVersion: 3.0
+  SuggestExtensions: false
 
 Layout/AccessModifierIndentation:
   EnforcedStyle: outdent
@@ -61,4 +62,10 @@ Metrics/ModuleLength:
     - '**/*_spec.rb'
 
 Style/ArgumentsForwarding:
+  Enabled: false
+
+Naming/PredicateMethod:
+  Enabled: false
+
+Metrics/ClassLength:
   Enabled: false

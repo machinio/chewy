@@ -37,7 +37,7 @@ describe Chewy::Index::Adapter::ActiveRecord, :active_record do
 
   describe '.new' do
     context 'with logger' do
-      let(:test_logger) { Logger.new('/dev/null') }
+      let(:test_logger) { Logger.new(File::NULL) }
       let(:default_scope_behavior) { :warn }
 
       around do |example|

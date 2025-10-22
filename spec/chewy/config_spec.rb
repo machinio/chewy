@@ -17,7 +17,7 @@ describe Chewy::Config do
   its(:search_class) { should be < Chewy::Search::Request }
 
   describe '#transport_logger=' do
-    let(:logger) { Logger.new('/dev/null') }
+    let(:logger) { Logger.new(File::NULL) }
     after { subject.transport_logger = nil }
 
     specify do
@@ -35,7 +35,7 @@ describe Chewy::Config do
   end
 
   describe '#transport_tracer=' do
-    let(:tracer) { Logger.new('/dev/null') }
+    let(:tracer) { Logger.new(File::NULL) }
     after { subject.transport_tracer = nil }
 
     specify do
