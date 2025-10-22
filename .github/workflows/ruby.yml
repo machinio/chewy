@@ -52,7 +52,7 @@ jobs:
           docker compose up elasticsearch_${{ matrix.elasticsearch }} -d --wait
 
       - name: Tests
-        run: bundle exec rspec
+        run: bundle exec rspec --format progress --format RSpec::Github::Formatter
 
   rubocop:
     runs-on: ubuntu-latest
