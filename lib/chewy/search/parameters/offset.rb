@@ -10,6 +10,7 @@ module Chewy
       # @see https://www.elastic.co/guide/en/elasticsearch/reference/5.4/search-request-from-size.html
       class Offset < Storage
         include IntegerStorage
+
         self.param_name = :from
       end
     end

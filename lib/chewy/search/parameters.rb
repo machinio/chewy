@@ -128,9 +128,7 @@ module Chewy
       end
 
       def render_query_string_params
-        query_string_storages = @storages.select do |storage_name, _|
-          QUERY_STRING_STORAGES.include?(storage_name)
-        end
+        query_string_storages = @storages.slice(*QUERY_STRING_STORAGES)
 
         query_string_storages.values.inject({}) do |result, storage|
           result.merge!(storage.render || {})

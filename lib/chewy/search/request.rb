@@ -17,6 +17,7 @@ module Chewy
       include Enumerable
       include Scoping
       include Scrolling
+
       UNDEFINED = Class.new.freeze
       EVERFIELDS = %w[_index _type _id _parent _routing].freeze
       DELEGATED_METHODS = %i[

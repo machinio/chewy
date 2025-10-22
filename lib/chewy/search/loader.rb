@@ -42,7 +42,7 @@ module Chewy
         loaded_objects = hit_groups.each_with_object({}) do |(index_name, hit_group), result|
           index = derive_index(index_name)
           ids = hit_group.map { |hit| hit['_id'] }
-          loaded = index.adapter.load(ids, **@options.merge(_index: index.base_name))
+          loaded = index.adapter.load(ids, **@options, _index: index.base_name)
           loaded ||= hit_group.map { |hit| index.build(hit) }
 
           result.merge!(hit_group.zip(loaded).to_h)

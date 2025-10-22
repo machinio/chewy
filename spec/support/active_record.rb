@@ -1,7 +1,7 @@
 require 'database_cleaner'
 
 ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:', pool: 10)
-ActiveRecord::Base.logger = Logger.new('/dev/null')
+ActiveRecord::Base.logger = Logger.new(File::NULL)
 if ActiveRecord::Base.respond_to?(:raise_in_transactional_callbacks)
   ActiveRecord::Base.raise_in_transactional_callbacks = true
 end
