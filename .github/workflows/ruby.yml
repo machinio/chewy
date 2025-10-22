@@ -5,30 +5,37 @@ on:
     branches: [master]
   pull_request:
     types: [
-      synchronize, # PR was updated
-      opened, # PR was open
-      reopened # PR was reopened
-    ]
+        synchronize, # PR was updated
+        opened, # PR was open
+        reopened, # PR was reopened
+      ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || format('{0}-{1}', github.ref, github.run_number) }}
+  cancel-in-progress: true
 
 jobs:
   ruby-3:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        ruby: [ '3.4' ]
+        ruby: ["3.4"]
         gemfile: [rails.7.1.activerecord, rails.7.2.activerecord]
-    name: ${{ matrix.ruby }}-${{ matrix.gemfile }}
+        elasticsearch: [8, 9]
+    name: ${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ matrix.elasticsearch }}
 
     env:
       BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
+      ES_MAJOR: ${{ matrix.elasticsearch }}
 
     services:
       redis:
         # Docker Hub image
         image: redis
         ports:
-          - '6379:6379'
+          - "6379:6379"
         # Set health checks to wait until redis has started
         options: >-
           --health-cmd "redis-cli ping"
@@ -43,14 +50,18 @@ jobs:
           bundler-cache: true
       - name: Start containers
         run: |
-          docker compose up elasticsearch_test -d
-          sleep 15
+          docker compose up elasticsearch_${{ matrix.elasticsearch }} -d --wait
+
+      - name: Get Elasticsearch status
+        run: |
+          curl -s http://localhost:9250
 
       - name: Tests
-        run: bundle exec rspec
+        run: bundle exec rspec --format progress --format RSpec::Github::Formatter
 
   rubocop:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1

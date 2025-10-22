@@ -1,7 +1,6 @@
-version: "3.4"
 services:
-  elasticsearch_test:
-    image: "elasticsearch:8.15.0"
+  elasticsearch_8:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:8.15.0"
     environment:
       - bootstrap.memory_lock=${ES_MEMORY_LOCK:-false}
       - "ES_JAVA_OPTS=-Xms${TEST_ES_HEAP_SIZE:-500m} -Xmx${TEST_ES_HEAP_SIZE:-500m}"
@@ -9,6 +8,31 @@ services:
       - xpack.security.enabled=false
     ports:
       - "127.0.0.1:9250:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health?timeout=5s || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+  elasticsearch_9:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:9.1.5"
+    environment:
+      - bootstrap.memory_lock=${ES_MEMORY_LOCK:-false}
+      - "ES_JAVA_OPTS=-Xms${TEST_ES_HEAP_SIZE:-500m} -Xmx${TEST_ES_HEAP_SIZE:-500m}"
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "127.0.0.1:9250:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health?timeout=5s || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     ulimits:
       nofile:
         soft: 65536
