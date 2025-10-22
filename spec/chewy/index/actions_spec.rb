@@ -500,10 +500,9 @@ describe Chewy::Index::Actions do
       context 'activated' do
         let(:reset_disable_refresh_interval) { true }
         specify do
-          expect(CitiesIndex.client.indices).to receive(:put_settings).with(index: name, body: before_import_body).once
-          expect(CitiesIndex.client.indices).to receive(:put_settings).with(index: name, body: after_import_body).once
           expect(CitiesIndex).to receive(:import).with(suffix: suffix, journal: false, refresh: false).and_call_original
           expect(CitiesIndex.reset!(suffix)).to eq(true)
+          expect(CitiesIndex.client.indices.get_settings(index: name).body.dig(name, 'settings', 'index', 'refresh_interval')).to eq('1s')
         end
 
         context 'refresh_interval already defined' do
@@ -521,12 +520,9 @@ describe Chewy::Index::Actions do
           end
 
           specify do
-            expect(CitiesIndex.client.indices)
-              .to receive(:put_settings).with(index: name, body: before_import_body).once
-            expect(CitiesIndex.client.indices).to receive(:put_settings).with(index: name, body: after_import_body).once
-            expect(CitiesIndex)
-              .to receive(:import).with(suffix: suffix, journal: false, refresh: false).and_call_original
+            expect(CitiesIndex).to receive(:import).with(suffix: suffix, journal: false, refresh: false).and_call_original
             expect(CitiesIndex.reset!(suffix)).to eq(true)
+            expect(CitiesIndex.client.indices.get_settings(index: name).body.dig(name, 'settings', 'index', 'refresh_interval')).to eq('2s')
           end
 
           specify 'uses empty index settings if not defined' do
@@ -540,9 +536,9 @@ describe Chewy::Index::Actions do
       context 'not activated' do
         let(:reset_disable_refresh_interval) { false }
         specify do
-          expect(CitiesIndex.client.indices).not_to receive(:put_settings)
           expect(CitiesIndex).to receive(:import).with(suffix: suffix, journal: false, refresh: true).and_call_original
           expect(CitiesIndex.reset!(suffix)).to eq(true)
+          expect(CitiesIndex.client.indices.get_settings(index: name).body.dig(name, 'settings', 'index', 'refresh_interval')).to eq(nil)
         end
       end
     end
@@ -566,10 +562,9 @@ describe Chewy::Index::Actions do
       context 'activated' do
         let(:reset_no_replicas) { true }
         specify do
-          expect(CitiesIndex.client.indices).to receive(:put_settings).with(index: name, body: before_import_body).once
-          expect(CitiesIndex.client.indices).to receive(:put_settings).with(index: name, body: after_import_body).once
           expect(CitiesIndex).to receive(:import).with(suffix: suffix, journal: false, refresh: true).and_call_original
           expect(CitiesIndex.reset!(suffix)).to eq(true)
+          expect(CitiesIndex.client.indices.get_settings(index: name).body.dig(name, 'settings', 'index', 'number_of_replicas')).to eq('0')
         end
       end
 
