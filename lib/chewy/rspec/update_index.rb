@@ -195,7 +195,7 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
 
     if mock_bulk_request.updates.none?
       output << "Expected index `#{index_name}` to be updated#{' with no refresh' if @no_refresh}, but it was not\n"
-    elsif @missed_reindex.present? || (@missed_update && @missed_update.present?) || @missed_delete.present?
+    elsif @missed_reindex.present? || @missed_update&.present? || @missed_delete.present?
       message = "Expected index `#{index_name}` "
       expected_updated_ids = (@reindex.keys + (@update || {}).keys).uniq
       message << [

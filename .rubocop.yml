@@ -69,3 +69,6 @@ Naming/PredicateMethod:
 
 Metrics/ClassLength:
   Enabled: false
+
+Metrics/BlockNesting:
+  Enabled: false
