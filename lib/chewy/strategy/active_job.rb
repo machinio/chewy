@@ -20,8 +20,12 @@ module Chewy
       end
 
       def leave
-        @stash.each do |type, ids|
-          Chewy::Strategy::ActiveJob::Worker.perform_later(type.name, ids) unless ids.empty?
+        @stash.each do |type, type_options|
+          type_options.each do |options, ids|
+            next if ids.empty?
+
+            Chewy::Strategy::ActiveJob::Worker.perform_later(type.name, ids, options)
+          end
         end
       end
     end

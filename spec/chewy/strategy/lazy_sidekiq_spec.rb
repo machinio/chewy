@@ -56,7 +56,7 @@ if defined?(Sidekiq)
           .with(hash_including(
                   'class' => Chewy::Strategy::Sidekiq::Worker,
                   'queue' => 'low',
-                  'args' => ['CitiesIndex', [city.id, other_city.id]]
+                  'args' => ['CitiesIndex', [city.id, other_city.id], {}]
                 ))
           .and_call_original
           .once

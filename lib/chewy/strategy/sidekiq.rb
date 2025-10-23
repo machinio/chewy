@@ -20,14 +20,16 @@ module Chewy
       end
 
       def leave
-        @stash.each do |type, ids|
-          next if ids.empty?
+        @stash.each do |type, type_options|
+          type_options.each do |options, ids|
+            next if ids.empty?
 
-          ::Sidekiq::Client.push(
-            'queue' => sidekiq_queue,
-            'class' => Chewy::Strategy::Sidekiq::Worker,
-            'args'  => [type.name, ids]
-          )
+            ::Sidekiq::Client.push(
+              'queue' => sidekiq_queue,
+              'class' => Chewy::Strategy::Sidekiq::Worker,
+              'args'  => [type.name, ids, options]
+            )
+          end
         end
       end
 

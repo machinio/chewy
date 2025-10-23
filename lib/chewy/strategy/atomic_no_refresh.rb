@@ -11,7 +11,15 @@ module Chewy
     #
     class AtomicNoRefresh < Atomic
       def leave
-        @stash.all? { |type, ids| type.import!(ids, refresh: false) }
+        @stash.all? do |type, type_options|
+          type_options.all? do |options, ids|
+            next if ids.empty?
+
+            options[:refresh] = false
+
+            type.import!(ids, **options)
+          end
+        end
       end
     end
   end

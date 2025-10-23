@@ -19,10 +19,12 @@ module Chewy
       end
 
       def leave
-        @stash.each do |type, ids|
-          next if ids.empty?
+        @stash.each do |type, type_options|
+          type_options.each do |options, ids|
+            next if ids.empty?
 
-          DelayedSidekiq::Scheduler.new(type, ids).postpone
+            DelayedSidekiq::Scheduler.new(type, ids, options).postpone
+          end
         end
       end
     end

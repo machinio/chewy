@@ -310,4 +310,129 @@ describe :update_index do
       specify { expectation.to fail_matching '3 times, but was deleted 2 times' }
     end
   end
+
+  context '#and_update' do
+    specify do
+      expect { DummiesIndex.bulk body: [{update: {_id: 42, doc: {}}}] }
+        .to update_index(DummiesIndex).and_update(42)
+    end
+
+    specify do
+      expect do
+        DummiesIndex.bulk body: [
+          {update: {_id: 42, doc: {a: '1'}}},
+          {update: {_id: 42, doc: {'a' => 2}}}
+        ]
+      end.to update_index(DummiesIndex).and_update(42, with: {a: 2})
+    end
+
+    specify do
+      expect do
+        DummiesIndex.bulk body: [
+          {update: {_id: 42, doc: {a: '1'}}},
+          {update: {_id: 43, doc: {}}}
+        ]
+        DummiesIndex.bulk body: [
+          {update: {_id: 42, doc: {b: '2'}}}
+        ]
+      end.to update_index(DummiesIndex).and_update(43, times: 1).and_update(42, times: 2)
+    end
+
+    specify do
+      expect do
+        expect do
+          DummiesIndex.bulk body: [{update: {_id: 43, doc: {a: '1'}}}]
+        end.to update_index(DummiesIndex).and_update(42, with: {a: 1})
+      end.to fail_matching('Expected document with id `42` to be updated, but it was not')
+    end
+
+    context '#only' do
+      specify do
+        expect do
+          DummiesIndex.bulk body: [
+            {update: {_id: 42, doc: {}}},
+            {update: {_id: 41, doc: {}}}
+          ]
+        end.to update_index(DummiesIndex).and_update(41, 42).only
+      end
+
+      specify do
+        expect do
+          expect do
+            DummiesIndex.bulk body: [
+              {update: {_id: 42, doc: {}}},
+              {update: {_id: 41, doc: {}}}
+            ]
+          end.to update_index(DummiesIndex).and_update(41).only
+        end.to fail_matching 'to update documents ["41"] only, but ["42"] was updated also'
+      end
+
+      specify do
+        expect do
+          expect { DummiesIndex.bulk body: [{update: {_id: 42, doc: {}}}, {delete: {_id: 41}}] }
+            .to update_index(DummiesIndex).and_update(42).only
+        end.to fail_matching 'to update documents ["42"] only, but ["41"] was deleted also'
+      end
+    end
+
+    context ':with' do
+      [
+        [{a: %w[one two]}, {a: %w[one two]}],
+        [{a: %w[one two]}, {a: %w[two one]}],
+        [{a: {b: %w[one one two]}}, {a: {b: %w[one two one]}}],
+        [{a: 1, b: 1}, {a: 1}]
+      ].each do |(doc, with)|
+        specify do
+          expect do
+            DummiesIndex.bulk body: [{update: {_id: 42, doc: doc}}]
+          end.to update_index(DummiesIndex).and_update(42, with: with)
+        end
+      end
+
+      [
+        [{a: %w[one two]}, {a: %w[one one two]}],
+        [{a: %w[one two]}, {a: 1}],
+        [{a: 1}, {a: %w[one two]}],
+        [{a: 1}, {a: 1, b: 1}]
+      ].each do |(doc, with)|
+        specify do
+          expect do
+            expect do
+              DummiesIndex.bulk body: [{update: {_id: 42, doc: doc}}]
+            end.to update_index(DummiesIndex).and_update(42, with: with)
+          end.to fail_matching('Expected document with id `42` to be updated')
+        end
+      end
+    end
+
+    context ':with_only' do
+      specify do
+        expect do
+          DummiesIndex.bulk body: [
+            {update: {_id: 42, doc: {a: '1'}}}
+          ]
+        end.to update_index(DummiesIndex).and_update(42, with_only: {a: '1'})
+      end
+
+      specify do
+        expect do
+          expect do
+            DummiesIndex.bulk body: [
+              {update: {_id: 42, doc: {a: '1', b: '2'}}}
+            ]
+          end.to update_index(DummiesIndex).and_update(42, with_only: {a: '1'})
+        end.to fail_matching('only fields [:a] should be updated')
+      end
+
+      specify do
+        expect do
+          expect do
+            DummiesIndex.bulk body: [
+              {update: {_id: 42, doc: {a: '2'}}}
+            ]
+          end.to update_index(DummiesIndex).and_update(42, with_only: {a: '1'})
+        end.to fail_matching('with_only {a: "1"}, but it was updated with {a: "2"}')
+      end
+    end
+  end
 end

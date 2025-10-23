@@ -22,6 +22,29 @@ describe Chewy::Index::Observe do
     end
   end
 
+  context 'with update_fields' do
+    before do
+      stub_model(:city) do
+        update_index('cities', update_fields: %i[name]) { self }
+      end
+
+      stub_index(:cities) do
+        index_scope City
+
+        field :name
+        field :country_id
+      end
+    end
+
+    let!(:city) { Chewy.strategy(:atomic) { City.create!(country_id: 1) } }
+    let(:new_name) { SecureRandom.hex }
+
+    specify do
+      expect { city.update!(name: new_name) }
+        .to update_index('cities').and_update(city, with_only: {name: new_name}).only
+    end
+  end
+
   context 'integration', :orm do
     let(:update_condition) { true }
 
