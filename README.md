@@ -271,6 +271,22 @@ Chewy.logger = Logger.new(STDOUT)
 
 See [config.rb](lib/chewy/config.rb) for more details.
 
+#### Elasticsearch compatibility headers
+
+If you need to communicate with an older Elasticsearch API using compatibility mode (for example, target the v8-compatible API), configure Chewy transport headers in an initializer:
+
+```ruby
+# config/initializers/chewy.rb
+Chewy.settings[:transport_options] = {
+  headers: {
+    accept: "application/vnd.elasticsearch+json; compatible-with=8",
+    content_type: "application/vnd.elasticsearch+json; compatible-with=8"
+  }
+}
+```
+
+Adjust the `compatible-with` version if needed.
+
 #### AWS Elasticsearch
 
 If you would like to use AWS's Elasticsearch using an IAM user policy, you will need to sign your requests for the `es:*` action by injecting the appropriate headers passing a proc to `transport_options`.
