@@ -16,13 +16,25 @@ module Chewy
         @stash = {}
       end
 
-      def update(type, objects, _options = {})
-        @stash[type] ||= []
-        @stash[type] |= type.root.id ? Array.wrap(objects) : type.adapter.identify(objects)
+      # @stash structure example:
+      # {
+      #   UsersIndex => {
+      #     {update_fields: [:first_name, :last_name]} => [id1, id2],
+      #     {update_fields: [:email]} => [id3, id4]
+      #   }
+      # }
+      def update(type, objects, options = {})
+        @stash[type] ||= {}
+        @stash[type][options] ||= []
+        @stash[type][options] |= type.root.id ? Array.wrap(objects) : type.adapter.identify(objects)
       end
 
       def leave
-        @stash.all? { |type, ids| type.import!(ids) }
+        @stash.all? do |type, type_options|
+          type_options.all? do |options, ids|
+            type.import!(ids, **options)
+          end
+        end
       end
     end
   end

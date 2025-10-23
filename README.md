@@ -415,6 +415,25 @@ class Book < ActiveRecord::Base
 end
 ```
 
+#### `update_index` options
+
+You can pass options to the `update_index` callback to control how Chewy updates documents. For example, to perform partial updates for specific fields, use `update_fields`:
+
+```ruby
+class City < ActiveRecord::Base
+  # Only `name` will be sent in a partial update when the callback triggers
+  update_index('cities', update_fields: [:name]) { self }
+end
+```
+
+When `update_fields` is present, Chewy builds partial update entries using the Elasticsearch bulk Update API. The bulk item uses the `update` action and the updated attributes are sent under `doc`:
+
+```json
+{ "update": { "_id": 1, "data": { "doc": { "name": "London" } } } }
+```
+
+This integrates with all strategies and is also supported by the RSpec `update_index` matcher via the `and_update` chain (see below).
+
 Also, you can use the second argument for method name passing:
 
 ```ruby
@@ -1322,6 +1341,39 @@ Just add `require 'chewy/rspec'` to your spec_helper.rb and you will get additio
 To use `mock_elasticsearch_response` and `mock_elasticsearch_response_sources` helpers add `include Chewy::Rspec::Helpers` to your tests.
 
 See [chewy/rspec/](lib/chewy/rspec/) for more details.
+
+#### `update_index` matcher: reindex, update and delete
+
+Chewy provides a powerful RSpec matcher to assert index updates. In addition to reindex (`and_reindex`) and delete (`and_delete`), you can assert partial updates via `and_update`.
+
+- Basic reindex assertion:
+
+```ruby
+expect { UsersIndex.bulk body: [{index: {_id: 1, data: {name: 'A'}}}] }
+  .to update_index(UsersIndex).and_reindex(1)
+```
+
+- Partial update assertion (Update API, attributes under `doc`):
+
+```ruby
+expect {
+  UsersIndex.bulk body: [{update: {_id: 1, doc: {name: 'Vlad'}}}]
+}.to update_index(UsersIndex).and_update(1, with: {name: 'Vlad'})
+```
+
+- Restrict updates to a specific set of fields using `with_only` (fails if any other field is updated):
+
+```ruby
+expect { city.update!(name: 'London') }
+  .to update_index('cities').and_update(city, with_only: {name: 'London'}).only
+```
+
+Notes:
+
+- The matcher accepts records or ids.
+- `with` checks the final merged attributes for a given document.
+- `with_only` enforces that only the provided keys are updated and their values match.
+- You can combine multiple expectations with `.and` and narrow the scope with `.only`.
 
 ### Minitest integration
 

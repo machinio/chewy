@@ -60,6 +60,16 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
     @reindex.merge!(extract_documents(*args))
   end
 
+  # Specify partially updated records. Update action uses `doc` attributes.
+  #
+  #   specify { expect { DummiesIndex.bulk body: [{update: {_id: 42, doc: {a: 1}}}] } }
+  #     .to update_index(DummiesIndex).and_update(42, with: {a: 1})
+  #
+  chain(:and_update) do |*args|
+    @update ||= {}
+    @update.merge!(extract_documents(*args))
+  end
+
   # Specify deleted records with record itself or id passed.
   #
   #   specify { expect { user.destroy! }.to update_index(UsersIndex).and_delete(user) }
@@ -83,7 +93,7 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
   #     .to update_index(UsersIndex).and_reindex(user1).only }
   #
   chain(:only) do |*_args|
-    raise 'Use `only` in conjunction with `and_reindex` or `and_delete`' if @reindex.blank? && @delete.blank?
+    raise 'Use `only` in conjunction with `and_reindex`, `and_update` or `and_delete`' if @reindex.blank? && (@update.nil? || @update.blank?) && @delete.blank?
 
     @only = true
   end
@@ -99,8 +109,10 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
 
   match do |block| # rubocop:disable Metrics/BlockLength
     @reindex ||= {}
+    @update ||= {}
     @delete ||= {}
     @missed_reindex = []
+    @missed_update = []
     @missed_delete = []
 
     index = Chewy.derive_name(index_name)
@@ -124,6 +136,14 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
         elsif @only
           @missed_reindex.push(body[:_id].to_s)
         end
+      elsif (body = updated_document[:update])
+        if (document = @update[body[:_id].to_s])
+          document[:real_count] += 1
+          payload = body[:data].is_a?(Hash) ? body[:data] : body
+          document[:real_attributes].merge!(payload[:doc] || {})
+        elsif @only
+          @missed_update.push(body[:_id].to_s)
+        end
       elsif (body = updated_document[:delete])
         if (document = @delete[body[:_id].to_s])
           document[:real_count] += 1
@@ -139,13 +159,34 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
       document[:match_attributes] = document[:expected_attributes].blank? ||
         compare_attributes(document[:expected_attributes], document[:real_attributes])
     end
+    @update.each_value do |document|
+      document[:match_count] = (!document[:expected_count] && document[:real_count].positive?) ||
+        (document[:expected_count] && document[:expected_count] == document[:real_count])
+
+      matches_with = document[:expected_attributes].blank? ||
+        compare_attributes(document[:expected_attributes], document[:real_attributes])
+
+      if document[:expected_only_attributes].present?
+        # with_only means: only these keys may be updated and must match
+        updated_keys = document[:real_attributes].keys.map(&:to_sym)
+        allowed_keys = document[:expected_only_attributes].keys
+        only_keys_ok = (updated_keys - allowed_keys).empty?
+        only_values_ok = compare_attributes(document[:expected_only_attributes], document[:real_attributes])
+        document[:match_attributes] = matches_with && only_keys_ok && only_values_ok
+        document[:only_keys_ok] = only_keys_ok
+        document[:only_values_ok] = only_values_ok
+      else
+        document[:match_attributes] = matches_with
+      end
+    end
     @delete.each_value do |document|
       document[:match_count] = (!document[:expected_count] && document[:real_count].positive?) ||
         (document[:expected_count] && document[:expected_count] == document[:real_count])
     end
 
-    mock_bulk_request.updates.present? && @missed_reindex.none? && @missed_delete.none? &&
+    mock_bulk_request.updates.present? && @missed_reindex.none? && @missed_update.none? && @missed_delete.none? &&
       @reindex.all? { |_, document| document[:match_count] && document[:match_attributes] } &&
+      @update.all? { |_, document| document[:match_count] && document[:match_attributes] } &&
       @delete.all? { |_, document| document[:match_count] }
   end
 
@@ -154,15 +195,17 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
 
     if mock_bulk_request.updates.none?
       output << "Expected index `#{index_name}` to be updated#{' with no refresh' if @no_refresh}, but it was not\n"
-    elsif @missed_reindex.present? || @missed_delete.present?
+    elsif @missed_reindex.present? || @missed_update&.present? || @missed_delete.present?
       message = "Expected index `#{index_name}` "
+      expected_updated_ids = (@reindex.keys + (@update || {}).keys).uniq
       message << [
-        ("to update documents #{@reindex.keys}" if @reindex.present?),
+        ("to update documents #{expected_updated_ids}" if expected_updated_ids.present?),
         ("to delete documents #{@delete.keys}" if @delete.present?)
       ].compact.join(' and ')
       message << ' only, but '
+      missed_updated_ids = (@missed_reindex + (@missed_update || [])).uniq
       message << [
-        ("#{@missed_reindex} was updated" if @missed_reindex.present?),
+        ("#{missed_updated_ids} was updated" if missed_updated_ids.present?),
         ("#{@missed_delete} was deleted" if @missed_delete.present?)
       ].compact.join(' and ')
       message << ' also.'
@@ -179,6 +222,31 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
           end
           if document[:expected_attributes].present? && !document[:match_attributes]
             result << "\n   with #{document[:expected_attributes]}, but it was reindexed with #{document[:real_attributes]}"
+          end
+        else
+          result << ', but it was not'
+        end
+        result << "\n"
+      end
+    end
+
+    output << @update.each.with_object('') do |(id, document), result|
+      unless document[:match_count] && document[:match_attributes]
+        result << "Expected document with id `#{id}` to be updated"
+        if document[:real_count].positive?
+          if document[:expected_count] && !document[:match_count]
+            result << "\n   #{document[:expected_count]} times, but was updated #{document[:real_count]} times"
+          end
+          if document[:expected_attributes].present? && !document[:match_attributes]
+            result << "\n   with #{document[:expected_attributes]}, but it was updated with #{document[:real_attributes]}"
+          end
+          if document[:expected_only_attributes].present?
+            unless document[:only_keys_ok]
+              result << "\n   only fields #{document[:expected_only_attributes].keys} should be updated, but got #{document[:real_attributes].keys}"
+            end
+            unless document[:only_values_ok]
+              result << "\n   with_only #{document[:expected_only_attributes]}, but it was updated with #{document[:real_attributes]}"
+            end
           end
         else
           result << ', but it was not'
@@ -219,6 +287,7 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
 
     expected_count = options[:times] || options[:count]
     expected_attributes = (options[:with] || options[:attributes] || {}).deep_symbolize_keys
+    expected_only_attributes = (options[:with_only] || {}).deep_symbolize_keys
 
     args.flatten.to_h do |document|
       id = document.respond_to?(:id) ? document.id.to_s : document.to_s
@@ -226,6 +295,7 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
         document: document,
         expected_count: expected_count,
         expected_attributes: expected_attributes,
+        expected_only_attributes: expected_only_attributes,
         real_count: 0,
         real_attributes: {}
       }]
