@@ -10,6 +10,12 @@ module Chewy
       # @see https://www.elastic.co/guide/en/elasticsearch/reference/current/knn-search.html
       class Knn < Storage
         include HashStorage
+
+        private
+
+        def normalize(value)
+          (value || {}).deep_symbolize_keys
+        end
       end
     end
   end
