@@ -112,7 +112,8 @@ describe Chewy::Index::Import::BulkBuilder do
           specify do
             expect(subject.bulk_body).to eq([
               {update: {_id: 1, data: {doc: {'name' => 'City17', 'rating' => 42}, doc_as_upsert: true}}},
-              {update: {_id: 2, data: {doc: {'name' => 'City18', 'rating' => 42}, doc_as_upsert: true}}}
+              {update: {_id: 2, data: {doc: {'name' => 'City18', 'rating' => 42}, doc_as_upsert: true}}},
+              {delete: {_id: 3}}
             ])
           end
         end
