@@ -111,6 +111,21 @@ Total: \\d+s\\Z
           'See https://github.com/toptal/chewy#journaling'
         )
       end
+
+    specify 'forces doc_as_upsert to false' do
+      output = StringIO.new
+      original_options = CitiesIndex._default_import_options.deep_dup
+      CitiesIndex.default_import_options(doc_as_upsert: true)
+
+      expect(CitiesIndex).to receive(:reset!).and_wrap_original do |method, *args|
+        kwargs = args.last.is_a?(Hash) ? args.pop : {}
+        expect(kwargs[:doc_as_upsert]).to eq(false)
+        method.call(*args, **kwargs)
+      end
+
+      described_class.reset(only: ['cities'], output: output)
+    ensure
+      CitiesIndex._default_import_options = original_options
     end
   end
 
