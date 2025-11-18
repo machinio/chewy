@@ -205,11 +205,11 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
       output << "Expected index `#{index_name}` to be updated#{' with no refresh' if @no_refresh}, but it was not\n"
     elsif @doc_as_upsert_error
       output << case @doc_as_upsert_error
-                when :missing_updates
-                  "Expected partial updates with doc_as_upsert, but no partial updates were performed\n"
-                when :missing_flag
-                  "Expected doc_as_upsert flag for updates #{@doc_as_upsert_missing_ids}, but it was missing\n"
-                end
+      when :missing_updates
+        "Expected partial updates with doc_as_upsert, but no partial updates were performed\n"
+      when :missing_flag
+        "Expected doc_as_upsert flag for updates #{@doc_as_upsert_missing_ids}, but it was missing\n"
+      end
     elsif @missed_reindex.present? || @missed_update&.present? || @missed_delete.present?
       message = "Expected index `#{index_name}` "
       expected_updated_ids = (@reindex.keys + (@update || {}).keys).uniq
