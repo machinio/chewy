@@ -148,6 +148,12 @@ describe :update_index do
 
     specify do
       expect do
+        DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}, doc_as_upsert: true}}}]
+      end.to update_index(DummiesIndex).and_reindex(42, with: {a: 1})
+    end
+
+    specify do
+      expect do
         expect do
           DummiesIndex.bulk body: [{index: {_id: 42, data: {}}}, {index: {_id: 43, data: {}}}]
         end.to update_index(DummiesIndex).and_reindex([44, 43])
@@ -441,6 +447,12 @@ describe :update_index do
       expect do
         DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}, doc_as_upsert: true}}}]
       end.to update_index(DummiesIndex).doc_as_upsert
+    end
+
+    specify do
+      expect do
+        DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}, doc_as_upsert: true}}}]
+      end.to update_index(DummiesIndex).doc_as_upsert.and_reindex(42, with: {a: 1})
     end
 
     specify do

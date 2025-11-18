@@ -135,16 +135,13 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
 
     mock_bulk_request.updates.each do |updated_document|
       if (body = updated_document[:index])
-        if (document = @reindex[body[:_id].to_s])
-          document[:real_count] += 1
-          document[:real_attributes].merge!(body[:data])
-        elsif @only
-          @missed_reindex.push(body[:_id].to_s)
-        end
+        register_reindex(body[:_id], body[:data])
       elsif (body = updated_document[:update])
-        if (document = @update[body[:_id].to_s])
+        payload = update_payload(body)
+        if doc_as_upsert_payload?(payload)
+          register_reindex(body[:_id], payload[:doc])
+        elsif (document = @update[body[:_id].to_s])
           document[:real_count] += 1
-          payload = body[:data].is_a?(Hash) ? body[:data] : body
           document[:real_attributes].merge!(payload[:doc] || {})
         elsif @only
           @missed_update.push(body[:_id].to_s)
@@ -282,6 +279,31 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
       end
     end
 
+    actually_reindexed_documents = mock_bulk_request.updates.filter_map { |document| document[:index] }
+    actually_updated_documents = mock_bulk_request.updates.filter_map { |document| document[:update] }
+    actually_deleted_documents = mock_bulk_request.updates.filter_map { |document| document[:delete] }
+
+    if actually_reindexed_documents.present?
+      output << "Actually reindexed documents:\n"
+      actually_reindexed_documents.each do |document|
+        output << "  document id `#{document[:_id]}` and attributes #{document[:data]}\n"
+      end
+    end
+
+    if actually_updated_documents.present?
+      output << "Actually updated documents:\n"
+      actually_updated_documents.each do |document|
+        output << "  document id `#{document[:_id]}` and attributes #{document[:data]}\n"
+      end
+    end
+
+    if actually_deleted_documents.present?
+      output << "Actually deleted documents:\n"
+      actually_deleted_documents.each do |document|
+        output << "  document id `#{document[:_id]}`\n"
+      end
+    end
+
     output
   end
 
@@ -306,7 +328,7 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
       return false
     end
 
-    missing = update_entries.reject { |entry| doc_as_upsert_payload?(entry) }
+    missing = update_entries.reject { |entry| doc_as_upsert_payload?(update_payload(entry)) }
     if missing.present?
       @doc_as_upsert_error = :missing_flag
       @doc_as_upsert_missing_ids = missing.map { |entry| entry[:_id].to_s }
@@ -316,8 +338,21 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
     true
   end
 
-  def doc_as_upsert_payload?(body)
-    body[:data].is_a?(Hash) && body[:data][:doc_as_upsert]
+  def doc_as_upsert_payload?(payload)
+    payload.is_a?(Hash) && payload[:doc_as_upsert]
+  end
+
+  def update_payload(body)
+    body[:data].is_a?(Hash) ? body[:data] : body
+  end
+
+  def register_reindex(id, data)
+    if (document = @reindex[id.to_s])
+      document[:real_count] += 1
+      document[:real_attributes].merge!(data || {})
+    elsif @only
+      @missed_reindex.push(id.to_s)
+    end
   end
 
   def extract_documents(*args)
