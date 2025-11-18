@@ -103,6 +103,11 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
     @no_refresh = true
   end
 
+  # Expect partial updates to be sent with doc_as_upsert flag
+  chain(:doc_as_upsert) do
+    @doc_as_upsert = true
+  end
+
   def supports_block_expectations?
     true
   end
@@ -184,7 +189,10 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
         (document[:expected_count] && document[:expected_count] == document[:real_count])
     end
 
-    mock_bulk_request.updates.present? && @missed_reindex.none? && @missed_update.none? && @missed_delete.none? &&
+    doc_as_upsert_ok = doc_as_upsert_valid?
+
+    mock_bulk_request.updates.present? && doc_as_upsert_ok &&
+      @missed_reindex.none? && @missed_update.none? && @missed_delete.none? &&
       @reindex.all? { |_, document| document[:match_count] && document[:match_attributes] } &&
       @update.all? { |_, document| document[:match_count] && document[:match_attributes] } &&
       @delete.all? { |_, document| document[:match_count] }
@@ -195,6 +203,13 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
 
     if mock_bulk_request.updates.none?
       output << "Expected index `#{index_name}` to be updated#{' with no refresh' if @no_refresh}, but it was not\n"
+    elsif @doc_as_upsert_error
+      output << case @doc_as_upsert_error
+                when :missing_updates
+                  "Expected partial updates with doc_as_upsert, but no partial updates were performed\n"
+                when :missing_flag
+                  "Expected doc_as_upsert flag for updates #{@doc_as_upsert_missing_ids}, but it was missing\n"
+                end
     elsif @missed_reindex.present? || @missed_update&.present? || @missed_delete.present?
       message = "Expected index `#{index_name}` "
       expected_updated_ids = (@reindex.keys + (@update || {}).keys).uniq
@@ -280,6 +295,29 @@ RSpec::Matchers.define :update_index do |index_name, options = {}| # rubocop:dis
 
   def mock_bulk_request
     @mock_bulk_request ||= MockBulkRequest.new
+  end
+
+  def doc_as_upsert_valid?
+    return true unless @doc_as_upsert
+
+    update_entries = mock_bulk_request.updates.filter_map { |document| document[:update] }
+    if update_entries.blank?
+      @doc_as_upsert_error = :missing_updates
+      return false
+    end
+
+    missing = update_entries.reject { |entry| doc_as_upsert_payload?(entry) }
+    if missing.present?
+      @doc_as_upsert_error = :missing_flag
+      @doc_as_upsert_missing_ids = missing.map { |entry| entry[:_id].to_s }
+      return false
+    end
+
+    true
+  end
+
+  def doc_as_upsert_payload?(body)
+    body[:data].is_a?(Hash) && body[:data][:doc_as_upsert]
   end
 
   def extract_documents(*args)

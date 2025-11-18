@@ -16,7 +16,7 @@ require 'chewy/index/wrapper'
 module Chewy
   class Index
     IMPORT_OPTIONS_KEYS = %i[
-      batch_size bulk_size consistency direct_import journal
+      batch_size bulk_size consistency direct_import doc_as_upsert journal
       pipeline raw_import refresh replication
     ].freeze
 

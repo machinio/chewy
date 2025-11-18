@@ -435,4 +435,28 @@ describe :update_index do
       end
     end
   end
+
+  context '#doc_as_upsert' do
+    specify do
+      expect do
+        DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}, doc_as_upsert: true}}}]
+      end.to update_index(DummiesIndex).doc_as_upsert
+    end
+
+    specify do
+      expect do
+        expect do
+          DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}}}}]
+        end.to update_index(DummiesIndex).doc_as_upsert
+      end.to fail_matching 'Expected doc_as_upsert flag for updates ["42"], but it was missing'
+    end
+
+    specify do
+      expect do
+        expect do
+          DummiesIndex.bulk body: [{index: {_id: 42, data: {a: 1}}}]
+        end.to update_index(DummiesIndex).doc_as_upsert
+      end.to fail_matching 'Expected partial updates with doc_as_upsert, but no partial updates were performed'
+    end
+  end
 end
