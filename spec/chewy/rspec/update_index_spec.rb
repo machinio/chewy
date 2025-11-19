@@ -148,6 +148,12 @@ describe :update_index do
 
     specify do
       expect do
+        DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}, doc_as_upsert: true}}}]
+      end.to update_index(DummiesIndex).and_reindex(42, with: {a: 1})
+    end
+
+    specify do
+      expect do
         expect do
           DummiesIndex.bulk body: [{index: {_id: 42, data: {}}}, {index: {_id: 43, data: {}}}]
         end.to update_index(DummiesIndex).and_reindex([44, 43])
@@ -433,6 +439,36 @@ describe :update_index do
           end.to update_index(DummiesIndex).and_update(42, with_only: {a: '1'})
         end.to fail_matching('with_only {a: "1"}, but it was updated with {a: "2"}')
       end
+    end
+  end
+
+  context '#doc_as_upsert' do
+    specify do
+      expect do
+        DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}, doc_as_upsert: true}}}]
+      end.to update_index(DummiesIndex).doc_as_upsert
+    end
+
+    specify do
+      expect do
+        DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}, doc_as_upsert: true}}}]
+      end.to update_index(DummiesIndex).doc_as_upsert.and_reindex(42, with: {a: 1})
+    end
+
+    specify do
+      expect do
+        expect do
+          DummiesIndex.bulk body: [{update: {_id: 42, data: {doc: {a: 1}}}}]
+        end.to update_index(DummiesIndex).doc_as_upsert
+      end.to fail_matching 'Expected doc_as_upsert flag for updates ["42"], but it was missing'
+    end
+
+    specify do
+      expect do
+        expect do
+          DummiesIndex.bulk body: [{index: {_id: 42, data: {a: 1}}}]
+        end.to update_index(DummiesIndex).doc_as_upsert
+      end.to fail_matching 'Expected partial updates with doc_as_upsert, but no partial updates were performed'
     end
   end
 end

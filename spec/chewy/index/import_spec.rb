@@ -234,6 +234,45 @@ describe Chewy::Index::Import do
         before { expect(Chewy.client).to receive(:bulk).once.and_call_original }
         specify { expect(import(dummy_cities, update_fields: [:name])).to eq(true) }
       end
+
+      specify do
+        expect { import(dummy_cities, update_fields: [:name], doc_as_upsert: true) }
+          .to update_index(CitiesIndex).doc_as_upsert
+      end
+    end
+
+    context 'doc_as_upsert without update_fields' do
+      specify do
+        expect { import(dummy_cities.first(2), doc_as_upsert: true) }
+          .to update_index(CitiesIndex).doc_as_upsert
+      end
+    end
+
+    context 'doc_as_upsert bulk bodies' do
+      let(:captured_bodies) { [] }
+
+      before do
+        allow(CitiesIndex.client).to receive(:bulk) do |params|
+          captured_bodies << params[:body]
+          nil
+        end
+      end
+
+      specify 'with update_fields' do
+        import(dummy_cities.first, update_fields: [:name], doc_as_upsert: true)
+
+        expect(captured_bodies.flatten).to eq([
+          {update: {_id: dummy_cities.first.id, data: {doc: {'name' => 'name0'}, doc_as_upsert: true}}}
+        ])
+      end
+
+      specify 'without update_fields' do
+        import(dummy_cities.first, doc_as_upsert: true)
+
+        expect(captured_bodies.flatten).to eq([
+          {update: {_id: dummy_cities.first.id, data: {doc: {'name' => 'name0'}, doc_as_upsert: true}}}
+        ])
+      end
     end
 
     context 'fields integrational' do

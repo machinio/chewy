@@ -336,7 +336,12 @@ module Chewy
 
       def reset_one(index, output, parallel: false)
         output.puts "Resetting #{index}"
-        index.reset!((Time.now.to_f * 1000).round, parallel: parallel, apply_journal: journal_exists?)
+        index.reset!(
+          (Time.now.to_f * 1000).round,
+          parallel: parallel,
+          doc_as_upsert: false,
+          apply_journal: journal_exists?
+        )
       end
 
       def warn_missing_index(output)

@@ -19,11 +19,20 @@ end
 describe Chewy::Index::Import::BulkBuilder do
   before { drop_indices }
 
-  subject { described_class.new(index, to_index: to_index, delete: delete, fields: fields) }
+  subject do
+    described_class.new(
+      index,
+      to_index: to_index,
+      delete: delete,
+      fields: fields,
+      doc_as_upsert: doc_as_upsert
+    )
+  end
   let(:index) { CitiesIndex }
   let(:to_index) { [] }
   let(:delete) { [] }
   let(:fields) { [] }
+  let(:doc_as_upsert) { false }
 
   describe '#bulk_body' do
     context 'simple bulk', :orm do
@@ -79,6 +88,31 @@ describe Chewy::Index::Import::BulkBuilder do
             expect(subject.bulk_body).to eq([
               {update: {_id: 1, data: {doc: {'name' => 'City17'}}}},
               {update: {_id: 2, data: {doc: {'name' => 'City18'}}}},
+              {delete: {_id: 3}}
+            ])
+          end
+
+          context 'with doc_as_upsert' do
+            let(:doc_as_upsert) { true }
+
+            specify do
+              expect(subject.bulk_body).to eq([
+                {update: {_id: 1, data: {doc: {'name' => 'City17'}, doc_as_upsert: true}}},
+                {update: {_id: 2, data: {doc: {'name' => 'City18'}, doc_as_upsert: true}}},
+                {delete: {_id: 3}}
+              ])
+            end
+          end
+        end
+
+        context 'without fields but doc_as_upsert' do
+          let(:doc_as_upsert) { true }
+          let(:to_index) { cities.first(2) }
+
+          specify do
+            expect(subject.bulk_body).to eq([
+              {update: {_id: 1, data: {doc: {'name' => 'City17', 'rating' => 42}, doc_as_upsert: true}}},
+              {update: {_id: 2, data: {doc: {'name' => 'City18', 'rating' => 42}, doc_as_upsert: true}}},
               {delete: {_id: 3}}
             ])
           end

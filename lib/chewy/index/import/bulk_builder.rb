@@ -13,11 +13,12 @@ module Chewy
         # @param to_index [Array<Object>] objects to index
         # @param delete [Array<Object>] objects or ids to delete
         # @param fields [Array<Symbol, String>] and array of fields for documents update
-        def initialize(index, to_index: [], delete: [], fields: [])
+        def initialize(index, to_index: [], delete: [], fields: [], doc_as_upsert: false)
           @index = index
           @to_index = to_index
           @delete = delete
           @fields = fields.map!(&:to_sym)
+          @doc_as_upsert = !!doc_as_upsert
         end
 
         # Returns ES API-ready bulk requiest body.
@@ -58,6 +59,11 @@ module Chewy
             return [] unless entry[:_id]
 
             entry[:data] = {doc: data_for(object, fields: @fields)}
+            entry[:data][:doc_as_upsert] = true if doc_as_upsert?
+            [{update: entry}]
+          elsif doc_as_upsert? && entry[:_id].present?
+            data ||= data_for(object)
+            entry[:data] = {doc: data, doc_as_upsert: true}
             [{update: entry}]
           else
             entry[:data] = data || data_for(object)
@@ -258,6 +264,10 @@ module Chewy
 
         def data_for(object, fields: [], crutches: crutches_for_index)
           @index.compose(object, crutches, fields: fields)
+        end
+
+        def doc_as_upsert?
+          @doc_as_upsert
         end
 
         def parent_changed?(data, old_parent)

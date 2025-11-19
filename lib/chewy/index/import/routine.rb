@@ -33,7 +33,8 @@ module Chewy
           refresh: true,
           update_fields: [],
           update_failover: true,
-          batch_size: Chewy::Index::Adapter::Base::BATCH_SIZE
+          batch_size: Chewy::Index::Adapter::Base::BATCH_SIZE,
+          doc_as_upsert: false
         }.freeze
 
         attr_reader :options, :parallel_options, :errors, :stats, :leftovers
@@ -78,7 +79,13 @@ module Chewy
         # @param delete [Array<Object>] any acceptable objects for deleting
         # @return [true, false] the result of the request, true if no errors
         def process(index: [], delete: [])
-          bulk_builder = BulkBuilder.new(@index, to_index: index, delete: delete, fields: @options[:update_fields])
+          bulk_builder = BulkBuilder.new(
+            @index,
+            to_index: index,
+            delete: delete,
+            fields: @options[:update_fields],
+            doc_as_upsert: @options[:doc_as_upsert]
+          )
           bulk_body = bulk_builder.bulk_body
 
           if @options[:journal]
@@ -127,7 +134,11 @@ module Chewy
           errors_to_cleanup.each { |error| errors.delete(error) }
 
           failed_objects = index_objects_by_id.values_at(*failed_ids_for_reimport)
-          BulkBuilder.new(@index, to_index: failed_objects).bulk_body
+          BulkBuilder.new(
+            @index,
+            to_index: failed_objects,
+            doc_as_upsert: @options[:doc_as_upsert]
+          ).bulk_body
         end
 
         def bulk

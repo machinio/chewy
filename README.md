@@ -434,6 +434,20 @@ When `update_fields` is present, Chewy builds partial update entries using the E
 
 This integrates with all strategies and is also supported by the RSpec `update_index` matcher via the `and_update` chain (see below).
 
+If you need Elasticsearch to create missing documents when an update runs, pass `doc_as_upsert: true`. You can do it per callback, per `Index.import` call, or by setting it in `default_import_options`.
+
+```ruby
+update_index('cities', update_fields: [:name], doc_as_upsert: true) { self }
+```
+
+When `doc_as_upsert` is enabled without `update_fields`, Chewy switches to the bulk Update API and sends the entire document under `doc`, so Elasticsearch either updates the existing document or creates a new one in a single request:
+
+```ruby
+CitiesIndex.import(records, doc_as_upsert: true)
+```
+
+Note that Elasticsearch still requires an `_id` for update actions; objects without ids continue to be indexed as usual.
+
 Also, you can use the second argument for method name passing:
 
 ```ruby
@@ -461,7 +475,7 @@ Every index has `default_import_options` configuration to specify, suddenly, def
 ```ruby
 class ProductsIndex < Chewy::Index
   index_scope Post.includes(:tags)
-  default_import_options batch_size: 100, bulk_size: 10.megabytes, refresh: false
+  default_import_options batch_size: 100, bulk_size: 10.megabytes, refresh: false, doc_as_upsert: true
 
   field :name
   field :tags, value: -> { tags.map(&:name) }
@@ -1359,6 +1373,14 @@ expect { UsersIndex.bulk body: [{index: {_id: 1, data: {name: 'A'}}}] }
 expect {
   UsersIndex.bulk body: [{update: {_id: 1, doc: {name: 'Vlad'}}}]
 }.to update_index(UsersIndex).and_update(1, with: {name: 'Vlad'})
+```
+
+- Assert that partial updates are sent with `doc_as_upsert`:
+
+```ruby
+expect {
+  UsersIndex.bulk body: [{update: {_id: 1, data: {doc: {name: 'Vlad'}, doc_as_upsert: true}}}]
+}.to update_index(UsersIndex).doc_as_upsert
 ```
 
 - Restrict updates to a specific set of fields using `with_only` (fails if any other field is updated):

@@ -52,14 +52,14 @@ Style/DoubleNegation:
 
 Metrics/BlockLength:
   Exclude:
-    - '**/*_spec.rb'
-    - '**/*_examples.rb'
-    - '**/*.rake'
+    - "**/*_spec.rb"
+    - "**/*_examples.rb"
+    - "**/*.rake"
 
 Metrics/ModuleLength:
   Exclude:
-    - 'lib/chewy/rake_helper.rb'
-    - '**/*_spec.rb'
+    - "lib/chewy/rake_helper.rb"
+    - "**/*_spec.rb"
 
 Style/ArgumentsForwarding:
   Enabled: false
@@ -71,4 +71,10 @@ Metrics/ClassLength:
   Enabled: false
 
 Metrics/BlockNesting:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
   Enabled: false

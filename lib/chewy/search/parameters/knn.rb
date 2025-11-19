@@ -11,7 +11,7 @@ module Chewy
       class Knn < Storage
         include HashStorage
 
-        private
+      private
 
         def normalize(value)
           (value || {}).deep_symbolize_keys

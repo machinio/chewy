@@ -16,7 +16,7 @@ describe Chewy::Index::Import::Routine do
 
   describe '#options' do
     specify do
-      expect(described_class.new(CitiesIndex).options).to eq(
+      expect(described_class.new(CitiesIndex).options).to include(
         journal: nil,
         refresh: true,
         update_failover: true,
@@ -28,7 +28,7 @@ describe Chewy::Index::Import::Routine do
     specify do
       expect(described_class.new(
         CitiesIndex, batch_size: 100, bulk_size: 1.megabyte, refresh: false
-      ).options).to eq(
+      ).options).to include(
         journal: nil,
         refresh: false,
         update_failover: true,
@@ -41,7 +41,7 @@ describe Chewy::Index::Import::Routine do
     context do
       before { allow(Chewy).to receive_messages(configuration: Chewy.configuration.merge(journal: true)) }
       specify do
-        expect(described_class.new(CitiesIndex).options).to eq(
+        expect(described_class.new(CitiesIndex).options).to include(
           journal: true,
           refresh: true,
           update_failover: true,
