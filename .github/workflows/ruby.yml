@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [master]
+  workflow_dispatch:
   pull_request:
     types: [
         synchronize, # PR was updated
@@ -22,8 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         ruby: ["3.4"]
-        gemfile: [rails.7.1.activerecord, rails.7.2.activerecord]
         elasticsearch: [8, 9]
+        gemfile: [rails.7.2.activerecord, rails.8.0.activerecord, rails.8.1.activerecord]
     name: ${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ matrix.elasticsearch }}
 
     env:
@@ -43,7 +44,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -63,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.4
