@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.4"]
+        ruby: ["3.4", "4.0"]
         elasticsearch: [8, 9]
         gemfile: [rails.7.2.activerecord, rails.8.0.activerecord, rails.8.1.activerecord]
     name: ${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ matrix.elasticsearch }}
